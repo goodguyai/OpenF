@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Orgs collection
+    match /orgs/{orgId} {
+      // Broad read access: any authenticated user can read any org.
+      // This is required because the select-creator page queries all orgs
+      // with ragieConnectionId != null to discover available creators.
+      // Sensitive operations (Google Drive connection, chat API, Stripe)
+      // are protected with token verification at the API route layer.
+      allow read: if request.auth != null;
+
+      // Only the creator who owns the org can create it
+      allow create: if request.auth != null
+                    && request.resource.data.name is string
+                    && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.ragieConnectionId == null;
+
+      // Only the org owner can update
+      // Immutable fields: name, ownerId, createdAt
+      // Mutable fields: ragieConnectionId, stripe fields, updatedAt
+      allow update: if request.auth != null
+                    && resource.data.ownerId == request.auth.uid
+                    && request.resource.data.name == resource.data.name
+                    && request.resource.data.ownerId == resource.data.ownerId
+                    && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own document
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Users can create their own document (on signup)
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.roles is list;
+
+      // Users can update their own document
+      // Immutable fields: email, roles, createdAt
+      // Mutable fields: subscribedOrgIds, stripeCustomerId, activeSubscriptions, updatedAt
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.email == resource.data.email
+                    && request.resource.data.roles == resource.data.roles
+                    && request.resource.data.createdAt == resource.data.createdAt;
+    }
+  }
+}
