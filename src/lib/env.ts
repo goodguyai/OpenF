@@ -29,5 +29,7 @@ export function validateEnv(): void {
   }
 }
 
-// Validate on module load
-validateEnv();
+// Validate on module load (skip during build)
+if (process.env.NEXT_PHASE !== "phase-production-build") {
+  validateEnv();
+}
