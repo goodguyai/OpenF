@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify the account is set up for charges
-    const account = await stripe.accounts.retrieve(stripeAccountId);
+    const account = await getStripe().accounts.retrieve(stripeAccountId);
     const isComplete = account.charges_enabled && account.details_submitted;
 
     await updateDoc(doc(db, "orgs", orgId), {

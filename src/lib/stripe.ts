@@ -1,8 +1,14 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-01-28.clover",
-});
+let _stripe: Stripe | null = null;
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: "2026-01-28.clover",
+    });
+  }
+  return _stripe;
+}
 
 const PLATFORM_FEE_PERCENT = parseInt(
   process.env.PLATFORM_FEE_PERCENT || "10",
@@ -10,7 +16,7 @@ const PLATFORM_FEE_PERCENT = parseInt(
 );
 
 export async function createConnectAccount(email: string): Promise<string> {
-  const account = await stripe.accounts.create({
+  const account = await getStripe().accounts.create({
     type: "standard",
     email,
   });
@@ -22,7 +28,7 @@ export async function createAccountLink(
   refreshUrl: string,
   returnUrl: string
 ): Promise<string> {
-  const link = await stripe.accountLinks.create({
+  const link = await getStripe().accountLinks.create({
     account: accountId,
     refresh_url: refreshUrl,
     return_url: returnUrl,
@@ -36,12 +42,12 @@ export async function createSubscriptionPrice(
   amountInCents: number,
   productName: string
 ): Promise<{ productId: string; priceId: string }> {
-  const product = await stripe.products.create(
+  const product = await getStripe().products.create(
     { name: productName },
     { stripeAccount: connectedAccountId }
   );
 
-  const price = await stripe.prices.create(
+  const price = await getStripe().prices.create(
     {
       product: product.id,
       unit_amount: amountInCents,
@@ -61,7 +67,7 @@ export async function createCheckoutSession(
   cancelUrl: string,
   metadata: Record<string, string>
 ): Promise<string> {
-  const session = await stripe.checkout.sessions.create(
+  const session = await getStripe().checkout.sessions.create(
     {
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
@@ -84,7 +90,7 @@ export async function createPortalSession(
   connectedAccountId: string,
   returnUrl: string
 ): Promise<string> {
-  const session = await stripe.billingPortal.sessions.create(
+  const session = await getStripe().billingPortal.sessions.create(
     {
       customer: customerId,
       return_url: returnUrl,
@@ -99,7 +105,7 @@ export function constructWebhookEvent(
   payload: string | Buffer,
   signature: string
 ): Stripe.Event {
-  return stripe.webhooks.constructEvent(
+  return getStripe().webhooks.constructEvent(
     payload,
     signature,
     process.env.STRIPE_WEBHOOK_SECRET!
