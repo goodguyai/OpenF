@@ -15,12 +15,9 @@ export default function DashboardPage() {
     text: string;
   } | null>(null);
 
-  const isStripeConnected =
-    !!(orgData as Record<string, unknown>)?.stripeOnboardingComplete;
-  const hasPrice = !!(orgData as Record<string, unknown>)?.stripePriceId;
-  const subscriptionPriceInCents = (
-    orgData as Record<string, unknown>
-  )?.subscriptionPriceInCents as number | undefined;
+  const isStripeConnected = !!orgData?.stripeOnboardingComplete;
+  const hasPrice = !!orgData?.stripePriceId;
+  const subscriptionPriceInCents = orgData?.subscriptionPriceInCents;
   const displayPrice = subscriptionPriceInCents
     ? (subscriptionPriceInCents / 100).toFixed(2)
     : null;
