@@ -4,9 +4,13 @@ import OpenAI from "openai";
 import { retrieveFromRagie, RetrievedContext } from "@/lib/ragie";
 import { verifyFirebaseToken } from "@/lib/firebase/auth-verify";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI() {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 const SYSTEM_PROMPT = `You are a fantasy football analyst chatting with a fan. Respond in FIRST PERSON - you ARE the expert, and the context below contains your knowledge and opinions.
 
@@ -102,7 +106,7 @@ export async function POST(request: NextRequest) {
     const sources = [...new Set(context.map((c) => c.source))];
 
     // Call OpenAI with streaming
-    const stream = await openai.chat.completions.create({
+    const stream = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
